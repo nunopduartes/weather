@@ -1,9 +1,12 @@
 const path = require('path');
 const express = require('express');
-const hbs = require('hbs'); 
-const geocode =  
+const hbs = require('hbs');
+const geocode = require('./utils/geocode');
+const forecast = require('./utils/forecast');
 
 const app = express();
+
+const port = process.env.port || 3000;
 
 const publicPath = path.join(__dirname, '../public');
 const viewsPath = path.join(__dirname, '../templates/views');
@@ -16,13 +19,10 @@ app.set('views', viewsPath);
 
 hbs.registerPartials(partialsPath);
 
-const autor = 'Nuno';
-
 app.get('', (req, res) => {
     res.render('index', {
-        title: 'Weather APP',
-        nome: 'Nuno',
-        author: autor,
+        title: 'Weather App',
+        nome: "Vitor Monteiro"
     });
 });
 
@@ -30,34 +30,48 @@ app.get('/about', (req, res) => {
     res.render('about', {
         title: 'Weather App | About',
         heading1: 'Sobre a nossa aplicação',
-        author: autor,
+        nome: "Vitor Monteiro"
     });
 });
 
 app.get('/weather', (req, res) => {
-    if(!req.query.city) {
+    if(!req.query.city){
         return res.send({
-            error: "localização não definida"
-        })
+            error: "Localização não definida"
+        });
     }
 
-    //function teste(address, (error, {latitude, longitude, location} = {}))
+    // weather?city=Porto
+    // Porto, quais são as tuas coordenadas
+    // ir buscar as coordenadas do Porto, mas atenção que podmeos ter erros
+        // se tivermos damos uma mensagem de errro
+    // vamos buscar a previsão metereológica
 
-    geocode(req.query.city, (error, {latitude, longitude, location} = {}) => {
-            
-    });
+    geocode(req.query.city, (error, { latitude, longitude, location } = {}) => {
+        if (error) {
+            return res.send({ error })
+        }
 
-    res.send({
-        forecast: "Sol",
-        location: "Porto",
-        address: req.query.city,
+        forecast(latitude, longitude, (error, forecastData) => {
+            if (error) {
+                return res.send({ error })
+            }
+
+            res.send({
+                forecast: forecastData,
+                location,
+                address: req.query.city
+            })
+        })
     })
 });
 
 app.get('*', (req, res) => {
-    res.render('404');
-})
+    res.render('404', {})
+});
 
-app.listen(3000, () => {
+app.listen(port, () => {
     console.log('O servidor iniciou');
 });
+
+// nodemon src/app.js -e js,hbs
